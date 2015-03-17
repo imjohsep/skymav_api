@@ -64,8 +64,11 @@ class Waypoints(Resource):
         return {"content": "Delete a single Waypoint"}
 
 class Battery(Resource):
+    def __init__(self):
+        self.conn = Conn()
+
     def get (self, id, uav_id):
-        return {"content": "Return battery level"}
+        return {"battery": "%s" % (self.conn.getBattery())}
 
 class Reboot(Resource):
     def get(self, id, uav_id):
@@ -83,28 +86,26 @@ class Servos(Resource):
     def post(self, id, uav_id, pwm):
         return {"content": "Set servo to pwm"}
 
-class Mode(Resource):
-
+class ModeList(Resource):
+    
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('mode', type = str, location = 'json')
-        self.reqparse.add_argument('description', type = str, location = 'json')
-        self.reqparse.add_argument('done', type = bool, location = 'json')
-        super(TaskAPI, self).__init__()
-
-    """Set Mode for a given UAV"""
-    def post(self, id, uav_id, mode):
-        return {"content": "Mode has been set"}
-
-class ModeList(Resource):
-    def __init__(self):
+        self.reqparse.add_argument('mode', type = str, location = 'json', required=True)
         self.conn = Conn()
+        super(ModeList, self).__init__()
 
     """ Get the current Mode of a given UAV """
     def get(self, id, uav_id):
-        x = self.conn.getMode()
-        return {"content": "The mode for UAV %s is %s" % (uav_id, self.conn.getMode())}
+        return {"mode": "%s" % (self.conn.getMode())}
 
+    """Set Mode for a given UAV"""
+    def post(self, id, uav_id):
+        mode = request.json['mode']
+        response = self.conn.setMode(mode)
+        if (response):
+            return {"mode": "%s" % (response)}, 202
+        else:
+            return { "message": "Bad Request - Invalid Mode", "status": 400 }
 
 
 api.add_resource(UsersList, "/v2/users", endpoint="users")
@@ -119,7 +120,7 @@ api.add_resource(PacketLoss, "/v2/users/<int:id>/uavs/<int:uav_id>/systems/packe
 api.add_resource(TimeSince, "/v2/users/<int:id>/uavs/<int:uav_id>/systems/timesince/<string:mtype>", endpoint="time_since")
 api.add_resource(Servos, "/v2/users/<int:id>/uavs/<int:uav_id>/systems/servos", endpoint="servos")
 api.add_resource(ModeList, "/v2/users/<int:id>/uavs/<int:uav_id>/modes", endpoint="modes")
-api.add_resource(Mode, "/v2/users/<int:id>/uavs/<int:uav_id>/modes/<string:mode>", endpoint="mode")
+# api.add_resource(Mode, "/v2/users/<int:id>/uavs/<int:uav_id>/modes/<string:mode>", endpoint="mode")
 
 
 if __name__ == "__main__":
